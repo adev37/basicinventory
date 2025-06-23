@@ -1,8 +1,9 @@
-// controllers/purchaseReturnController.js
+// backend/controllers/purchaseReturnController.js
 import PurchaseReturn from "../models/PurchaseReturn.js";
 import GoodsReceipt from "../models/GoodsReceipt.js";
 import { decreaseStock } from "./stockController.js";
 
+// ➕ Create Purchase Return
 export const createPurchaseReturn = async (req, res) => {
   try {
     const { grn, returnedItems, remarks, createdBy } = req.body;
@@ -10,8 +11,9 @@ export const createPurchaseReturn = async (req, res) => {
     const grnDoc = await GoodsReceipt.findById(grn).populate(
       "receivedItems.item"
     );
-
-    if (!grnDoc) return res.status(404).json({ message: "GRN not found" });
+    if (!grnDoc) {
+      return res.status(404).json({ message: "GRN not found" });
+    }
 
     const grnItemsMap = {};
     for (const ri of grnDoc.receivedItems) {
@@ -23,15 +25,17 @@ export const createPurchaseReturn = async (req, res) => {
       const itemId = ret.item;
       const qty = parseInt(ret.returnQty);
 
-      if (!grnItemsMap[itemId])
+      if (!grnItemsMap[itemId]) {
         return res.status(400).json({ message: `Item ${itemId} not in GRN` });
+      }
 
-      if (qty > grnItemsMap[itemId])
+      if (qty > grnItemsMap[itemId]) {
         return res.status(400).json({
           message: `Returned qty ${qty} exceeds received for item ${itemId}`,
         });
+      }
 
-      await decreaseStock(itemId, qty); // Custom function to reduce stock
+      await decreaseStock(itemId, qty); // ⚠️ Might throw if stock is insufficient
     }
 
     const purchaseReturn = new PurchaseReturn({
@@ -49,6 +53,11 @@ export const createPurchaseReturn = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Error in createPurchaseReturn:", err);
+
+    if (err.code === "INSUFFICIENT_STOCK") {
+      return res.status(400).json({ message: err.message });
+    }
+
     return res.status(500).json({
       message: "Failed to process return",
       error: err.message,
@@ -56,6 +65,7 @@ export const createPurchaseReturn = async (req, res) => {
   }
 };
 
+// 📄 Get All Purchase Returns
 export const getAllReturns = async (req, res) => {
   try {
     const returns = await PurchaseReturn.find()

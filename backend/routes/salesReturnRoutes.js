@@ -1,4 +1,3 @@
-// === File: backend/routes/salesReturnRoutes.js ===
 import express from "express";
 import {
   createSalesReturn,

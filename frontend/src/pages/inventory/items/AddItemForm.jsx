@@ -3,7 +3,6 @@ import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// ✅ Decode JWT to get user name
 function getUserFromToken() {
   const token = localStorage.getItem("token");
   if (!token) return null;
@@ -20,7 +19,6 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
-    quantity: "",
     unit: "",
     category: "",
     description: "",
@@ -54,7 +52,7 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCategories(res.data);
-    } catch (err) {
+    } catch {
       toast.error("❌ Failed to load categories");
     }
   };
@@ -65,7 +63,7 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUnits(res.data);
-    } catch (err) {
+    } catch {
       toast.error("❌ Failed to load units");
     }
   };
@@ -74,7 +72,6 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
     setFormData({
       name: "",
       sku: "",
-      quantity: "",
       unit: "",
       category: "",
       description: "",
@@ -91,12 +88,12 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const user = getUserFromToken(); // ✅ Get current user from token
+    const user = getUserFromToken();
 
     const payload = {
       ...formData,
       gst: Number(formData.gst),
-      updatedBy: user?.name || "Unknown", // ✅ Add updatedBy for backend
+      updatedBy: user?.name || "Unknown",
     };
 
     try {
@@ -117,10 +114,7 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
         toast.success("✅ Item added successfully");
       }
 
-      if (typeof fetchItems === "function") {
-        fetchItems();
-      }
-
+      if (typeof fetchItems === "function") fetchItems();
       resetForm();
     } catch (err) {
       const message =
@@ -136,7 +130,6 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
         {editItem ? "✏️ Edit Item" : "➕ Add New Item"}
       </h2>
 
-      {/* Item Name */}
       <div className="mb-4">
         <input
           name="name"
@@ -148,22 +141,12 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
         />
       </div>
 
-      {/* SKU, Quantity, Price, GST */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <input
           name="sku"
           value={formData.sku}
           onChange={handleChange}
           placeholder="Enter SKU"
-          className="border p-3 rounded w-full"
-          required
-        />
-        <input
-          name="quantity"
-          type="number"
-          value={formData.quantity}
-          onChange={handleChange}
-          placeholder="Quantity"
           className="border p-3 rounded w-full"
           required
         />
@@ -180,7 +163,7 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
           name="gst"
           value={formData.gst}
           onChange={handleChange}
-          className="border p-3 rounded w-full bg-white focus:ring-2 focus:ring-blue-300 outline-none"
+          className="border p-3 rounded w-full bg-white"
           required>
           <option value="">Select GST %</option>
           {[0, 5, 12, 18, 28].map((rate) => (
@@ -191,7 +174,6 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
         </select>
       </div>
 
-      {/* Unit & Category */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <select
           name="unit"
@@ -221,7 +203,6 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
         </select>
       </div>
 
-      {/* Low Stock & Description */}
       <div className="mt-4">
         <input
           name="lowStockThreshold"
@@ -243,7 +224,6 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
         />
       </div>
 
-      {/* Submit Button */}
       <div className="mt-8 flex justify-center">
         <button
           type="submit"
@@ -252,7 +232,6 @@ const AddItemForm = ({ fetchItems, editItem, setEditItem }) => {
         </button>
       </div>
 
-      {/* Toast Container */}
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </form>
   );

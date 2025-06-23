@@ -1,89 +1,125 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const AddDeliveryChallan = () => {
+  const navigate = useNavigate();
+  const [salesOrders, setSalesOrders] = useState([]);
+  const [selectedSOId, setSelectedSOId] = useState("");
   const [items, setItems] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [clientName, setClientName] = useState("");
   const [transportDetails, setTransportDetails] = useState("");
 
+  // Fetch Undelivered Sales Orders
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/items")
-      .then((res) => setItems(res.data))
-      .catch((err) => console.error("Error fetching items:", err));
+    const fetchUndeliveredSOs = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:5000/api/sales-orders/undelivered",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        setSalesOrders(res.data);
+      } catch (err) {
+        console.error("❌ Failed to fetch SOs:", err);
+      }
+    };
+
+    fetchUndeliveredSOs();
   }, []);
 
-  const handleAddItem = () => {
-    setSelectedItems([...selectedItems, { item: "", quantity: 1 }]);
+  const handleSOChange = (e) => {
+    const soId = e.target.value;
+    setSelectedSOId(soId);
+    const selected = salesOrders.find((so) => so._id === soId);
+    if (selected) {
+      const mappedItems = selected.items.map((i) => ({
+        item: i.item._id,
+        name: i.item.name,
+        quantity: i.remaining,
+      }));
+      setItems(mappedItems);
+    } else {
+      setItems([]);
+    }
   };
 
-  const handleItemChange = (index, field, value) => {
-    const updatedItems = [...selectedItems];
-    updatedItems[index][field] = value;
-    setSelectedItems(updatedItems);
-  };
+  const handleSubmit = async () => {
+    if (!selectedSOId || items.length === 0) {
+      alert("❌ Please select a Sales Order and ensure items exist.");
+      return;
+    }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    await axios.post("http://localhost:5000/api/delivery-challans", {
-      clientName,
-      transportDetails,
-      items: selectedItems,
-    });
-    alert("Delivery Challan Created");
-    setClientName("");
-    setTransportDetails("");
-    setSelectedItems([]);
+    try {
+      await axios.post(
+        "http://localhost:5000/api/delivery-challans",
+        {
+          salesOrderId: selectedSOId,
+          items: items.map(({ item, quantity }) => ({ item, quantity })),
+          transportDetails,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      alert("✅ Delivery Challan Created");
+      navigate("/delivery-challans");
+    } catch (err) {
+      console.error("❌ Error creating DC:", err);
+      alert("❌ Failed to create Delivery Challan");
+    }
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto bg-white rounded shadow">
-      <h2 className="text-xl font-bold mb-4">Create Delivery Challan</h2>
-      <input
-        className="w-full border p-2 mb-3"
-        placeholder="Client Name"
-        value={clientName}
-        onChange={(e) => setClientName(e.target.value)}
-      />
-      <input
-        className="w-full border p-2 mb-3"
-        placeholder="Transport Details"
-        value={transportDetails}
-        onChange={(e) => setTransportDetails(e.target.value)}
-      />
-      <button
-        type="button"
-        className="bg-blue-500 text-white px-3 py-1 rounded mb-3"
-        onClick={handleAddItem}>
-        + Add Item
-      </button>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">🚚 Create Delivery Challan</h2>
 
-      {selectedItems.map((row, idx) => (
-        <div key={idx} className="flex gap-2 mb-2">
-          <select
-            className="flex-1 border p-2"
-            value={row.item}
-            onChange={(e) => handleItemChange(idx, "item", e.target.value)}>
-            <option value="">Select Item</option>
-            {items.map((itm) => (
-              <option key={itm._id} value={itm._id}>
-                {itm.name}
-              </option>
+      <div className="mb-4">
+        <label className="block font-medium mb-1">Select Sales Order</label>
+        <select
+          className="w-full border p-2 rounded"
+          value={selectedSOId}
+          onChange={handleSOChange}>
+          <option value="">-- Select Sales Order --</option>
+          {salesOrders.map((so) => (
+            <option key={so._id} value={so._id}>
+              {so.orderNumber || so.soNumber} – {so.client?.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {items.length > 0 && (
+        <div className="mb-4">
+          <h4 className="font-semibold mb-2">Items to Deliver</h4>
+          <ul className="list-disc pl-5">
+            {items.map((i, index) => (
+              <li key={index}>
+                {i.name} – Qty: {i.quantity}
+              </li>
             ))}
-          </select>
-          <input
-            type="number"
-            className="w-24 border p-2"
-            min={1}
-            value={row.quantity}
-            onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
-          />
+          </ul>
         </div>
-      ))}
+      )}
+
+      <div className="mb-4">
+        <label className="block font-medium mb-1">Transport Details</label>
+        <input
+          type="text"
+          className="w-full border p-2 rounded"
+          value={transportDetails}
+          onChange={(e) => setTransportDetails(e.target.value)}
+          placeholder="e.g., UP32-A-1234 / Blue Dart"
+        />
+      </div>
 
       <button
-        className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
+        className="bg-green-600 text-white px-6 py-2 rounded"
         onClick={handleSubmit}>
         Submit Delivery Challan
       </button>

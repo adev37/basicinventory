@@ -1,32 +1,6 @@
+// backend/controllers/itemController.js
 import Item from "../models/Item.js";
 import Stock from "../models/Stock.js";
-
-// @desc    Get all items
-// @route   GET /api/items
-// @access  Private
-export const getAllItems = async (req, res) => {
-  try {
-    const items = await Item.find()
-      .populate("category")
-      .sort({ createdAt: -1 });
-    res.status(200).json(items);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch items", error });
-  }
-};
-
-// @desc    Get single item by ID
-// @route   GET /api/items/:id
-// @access  Private
-export const getItemById = async (req, res) => {
-  try {
-    const item = await Item.findById(req.params.id).populate("category");
-    if (!item) return res.status(404).json({ message: "Item not found" });
-    res.status(200).json(item);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch item", error });
-  }
-};
 
 // @desc    Add new item
 // @route   POST /api/items
@@ -36,7 +10,6 @@ export const createItem = async (req, res) => {
     const {
       name,
       sku,
-      quantity,
       unit,
       category,
       description,
@@ -52,10 +25,10 @@ export const createItem = async (req, res) => {
         .json({ message: "Item with this SKU already exists" });
     }
 
+    // Create Item
     const item = new Item({
       name,
       sku,
-      quantity,
       unit,
       category,
       description,
@@ -67,12 +40,12 @@ export const createItem = async (req, res) => {
 
     const savedItem = await item.save();
 
-    // ✅ Stock record with name of logged-in user
+    // ✅ Create initial Stock entry with 0 quantity
     await new Stock({
       item: savedItem._id,
-      quantity: savedItem.quantity,
+      quantity: 0,
       lastUpdatedBy: req.user?.name || "System",
-      remarks: "Initial quantity set during item creation",
+      remarks: "Initial stock entry created with 0 quantity",
     }).save();
 
     res.status(201).json(savedItem);
@@ -80,8 +53,7 @@ export const createItem = async (req, res) => {
     res.status(500).json({ message: "Failed to create item", error });
   }
 };
-
-// @desc    Bulk add items
+// @desc    Bulk add items (with initial stock as 0)
 // @route   POST /api/items/bulk
 // @access  Private
 export const bulkCreateItems = async (req, res) => {
@@ -110,9 +82,10 @@ export const bulkCreateItems = async (req, res) => {
 
     const insertedItems = await Item.insertMany(enrichedItems);
 
+    // ✅ Create stock entries with quantity = 0
     const stockEntries = insertedItems.map((item) => ({
       item: item._id,
-      quantity: item.quantity || 0,
+      quantity: 0,
       lastUpdatedBy: req.user?.name || "Admin",
       remarks: "Initial stock from bulk add",
     }));
@@ -127,43 +100,64 @@ export const bulkCreateItems = async (req, res) => {
     });
   }
 };
-
-// @desc    Update item
-// @route   PUT /api/items/:id
+// @desc    Get all items
+// @route   GET /api/items
 // @access  Private
-export const updateItem = async (req, res) => {
+export const getAllItems = async (req, res) => {
   try {
-    const updated = await Item.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const items = await Item.find()
+      .populate("category")
+      .sort({ createdAt: -1 });
 
-    if (!updated) return res.status(404).json({ message: "Item not found" });
-
-    // ⚠️ Optional: add stock update logic here if needed
-
-    res.status(200).json(updated);
+    res.status(200).json(items);
   } catch (error) {
-    res.status(500).json({ message: "Failed to update item", error });
+    res.status(500).json({ message: "Failed to fetch items", error });
   }
 };
-
-// @desc    Delete item
+// @desc    Delete item and its stock entry
 // @route   DELETE /api/items/:id
 // @access  Private
 export const deleteItem = async (req, res) => {
   try {
-    const deleted = await Item.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: "Item not found" });
+    const itemId = req.params.id;
 
-    await Stock.deleteOne({ item: req.params.id });
+    // Check if item exists
+    const deletedItem = await Item.findByIdAndDelete(itemId);
+    if (!deletedItem) {
+      return res.status(404).json({ message: "Item not found" });
+    }
 
-    res.status(200).json({ message: "Item and stock deleted successfully" });
+    // Delete associated stock record
+    await Stock.deleteOne({ item: itemId });
+
+    res.status(200).json({ message: "✅ Item and stock deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete item", error });
+    res.status(500).json({
+      message: "❌ Failed to delete item",
+      error: error.message,
+    });
   }
 };
+// @desc    Get single item by ID
+// @route   GET /api/items/:id
+// @access  Private
+export const getItemById = async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id).populate("category");
 
-// @desc    Get items with stock details
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    res.status(200).json(item);
+  } catch (error) {
+    res.status(500).json({
+      message: "❌ Failed to fetch item by ID",
+      error: error.message,
+    });
+  }
+};
+// @desc    Get items enriched with stock data
 // @route   GET /api/items/with-stock
 // @access  Private
 export const getItemsWithStock = async (req, res) => {
@@ -171,6 +165,7 @@ export const getItemsWithStock = async (req, res) => {
     const items = await Item.find().populate("category");
     const stocks = await Stock.find();
 
+    // Create a map of itemId → stock
     const stockMap = new Map();
     for (const stock of stocks) {
       stockMap.set(stock.item.toString(), stock);
@@ -180,7 +175,7 @@ export const getItemsWithStock = async (req, res) => {
       const stock = stockMap.get(item._id.toString());
       return {
         ...item._doc,
-        currentQty: stock?.quantity ?? item.quantity ?? 0,
+        currentQty: stock?.quantity ?? 0,
         lastUpdatedBy: stock?.lastUpdatedBy || "-",
         remarks: stock?.remarks || "-",
       };
@@ -191,6 +186,31 @@ export const getItemsWithStock = async (req, res) => {
     console.error("❌ getItemsWithStock error:", error);
     res.status(500).json({
       message: "Failed to load items with stock",
+      error: error.message,
+    });
+  }
+};
+// @desc    Update item
+// @route   PUT /api/items/:id
+// @access  Private
+export const updateItem = async (req, res) => {
+  try {
+    const itemId = req.params.id;
+    const updatedData = req.body;
+
+    const updatedItem = await Item.findByIdAndUpdate(itemId, updatedData, {
+      new: true,
+    });
+
+    if (!updatedItem) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    res.status(200).json(updatedItem);
+  } catch (error) {
+    console.error("❌ Failed to update item:", error);
+    res.status(500).json({
+      message: "Failed to update item",
       error: error.message,
     });
   }

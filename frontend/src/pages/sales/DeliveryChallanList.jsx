@@ -26,7 +26,7 @@ const DeliveryChallanList = () => {
         <tbody>
           {challans.map((dc) => (
             <tr key={dc._id}>
-              <td className="border p-2">{dc.clientName}</td>
+              <td className="border p-2">{dc.client?.name || "Unnamed"}</td>
               <td className="border p-2">
                 <ul>
                   {dc.items.map((i) => (

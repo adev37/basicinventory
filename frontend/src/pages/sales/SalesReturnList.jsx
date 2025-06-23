@@ -1,65 +1,90 @@
+// File: /src/pages/sales/SalesReturnList.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { toast } from "react-toastify";
 
 const SalesReturnList = () => {
   const [returns, setReturns] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSalesReturns();
+    const fetchReturns = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("http://localhost:5000/api/sales-returns", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setReturns(res.data);
+      } catch (err) {
+        console.error("Error fetching sales returns:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReturns();
   }, []);
 
-  const fetchSalesReturns = async () => {
-    try {
-      const response = await axios.get("/api/sales-returns"); // Adjust API route as needed
-      setReturns(response.data);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch sales returns");
-    }
-  };
-
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <h2 className="text-2xl font-bold text-blue-800 mb-4">
-        🔁 Sales Returns
+    <div className="max-w-6xl mx-auto mt-10 px-4">
+      <h2 className="text-2xl font-semibold mb-6 text-green-800">
+        🔁 Sales Return List
       </h2>
 
-      <div className="overflow-x-auto border shadow rounded-lg">
-        <table className="min-w-full text-sm text-left">
-          <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
-            <tr>
-              <th className="px-4 py-3 border">Return No.</th>
-              <th className="px-4 py-3 border">Client</th>
-              <th className="px-4 py-3 border">Return Date</th>
-              <th className="px-4 py-3 border">Items</th>
-              <th className="px-4 py-3 border">Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            {returns.map((ret) => (
-              <tr key={ret._id} className="border-t">
-                <td className="px-4 py-2 border">{ret.returnNumber}</td>
-                <td className="px-4 py-2 border">{ret.clientName}</td>
-                <td className="px-4 py-2 border">
-                  {new Date(ret.returnDate).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-2 border">
-                  {ret.items?.length} item(s)
-                </td>
-                <td className="px-4 py-2 border">{ret.reason || "N/A"}</td>
-              </tr>
-            ))}
-            {returns.length === 0 && (
+      {loading ? (
+        <p className="text-gray-600">Loading sales returns...</p>
+      ) : returns.length === 0 ? (
+        <p className="text-gray-600">No sales returns found.</p>
+      ) : (
+        <div className="overflow-x-auto shadow border rounded-lg">
+          <table className="min-w-full table-auto text-sm text-left text-gray-700">
+            <thead className="bg-green-50 text-gray-700 uppercase text-xs">
               <tr>
-                <td colSpan="5" className="px-4 py-4 text-center text-gray-500">
-                  No returns found.
-                </td>
+                <th className="px-4 py-3">Return ID</th>
+                <th className="px-4 py-3">Invoice No.</th>
+                <th className="px-4 py-3">Client</th>
+                <th className="px-4 py-3">Items</th>
+                <th className="px-4 py-3">Reason</th>
+                <th className="px-4 py-3">Date</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {returns.map((entry) => (
+                <tr key={entry._id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium">
+                    {entry._id.slice(-6).toUpperCase()}
+                  </td>
+                  <td className="px-4 py-3">
+                    {entry.referenceId?.invoiceNumber || "N/A"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {entry.referenceId?.client?.companyName || "—"}
+                  </td>
+                  <td className="px-4 py-3 space-y-1">
+                    {entry.items.map((i, index) => (
+                      <div key={index}>
+                        {i.item?.name || i.item} — Qty: {i.quantity}
+                      </div>
+                    ))}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded text-white text-xs font-semibold ${
+                        entry.reason?.toLowerCase().includes("damage")
+                          ? "bg-red-500"
+                          : "bg-yellow-500"
+                      }`}>
+                      {entry.reason || "—"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {new Date(entry.createdAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

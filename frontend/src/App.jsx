@@ -46,13 +46,15 @@ import AddGRNForm from "./pages/purchase/AddGRN";
 import AddPurchaseReturn from "./pages/purchase/AddPurchaseReturn";
 import PurchaseReturnList from "./pages/purchase/PurchaseReturnList";
 import GRNList from "./pages/purchase/GRNList";
+import AddVendorQuotation from "./pages/purchase/vendor quotation/AddVendorQuotation";
+import VendorQuotationList from "./pages/purchase/vendor quotation/VendorQuotationList";
 
 // Delivery Challans
 import AddDeliveryChallan from "./pages/sales/AddDeliveryChallan";
 import DeliveryChallanList from "./pages/sales/DeliveryChallanList";
 
 // Sales
-import AddInvoice from "./pages/sales/AddInvoice";
+import AddSalesInvoice from "./pages/sales/AddSalesInvoice";
 import InvoiceList from "./pages/sales/InvoiceList";
 import AddSalesOrder from "./pages/sales/AddSalesOrder";
 import SalesOrderList from "./pages/sales/SalesOrderList";
@@ -70,6 +72,7 @@ import SalesReturnReport from "./pages/reports/SalesReturnReport";
 // Stock Adjustments
 import AddStockAdjustment from "./pages/inventory/stock-adjustments/AddStockAdjustment";
 import StockAdjustmentList from "./pages/inventory/stock-adjustments/StockAdjustmentList";
+import SalesInvoiceList from "./pages/sales/SalesInvoiceList";
 
 const getUser = () => {
   const user = localStorage.getItem("user");
@@ -295,6 +298,29 @@ export default function App() {
             </PrivateRoute>
           }
         />
+        {/* Vendor Quotations */}
+        <Route
+          path="/vendor-quotations"
+          element={
+            <PrivateRoute roles={["admin", "manager"]}>
+              <Layout>
+                <VendorQuotationList />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/vendor-quotations/create"
+          element={
+            <PrivateRoute roles={["admin", "manager"]}>
+              <Layout>
+                <div className="max-w-5xl mx-auto mt-6">
+                  <AddVendorQuotation />
+                </div>
+              </Layout>
+            </PrivateRoute>
+          }
+        />
 
         {/* Delivery Challans */}
         <Route
@@ -350,7 +376,17 @@ export default function App() {
           element={
             <PrivateRoute roles={["admin", "manager"]}>
               <Layout>
-                <AddInvoice />
+                <AddSalesInvoice />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/sales-invoices"
+          element={
+            <PrivateRoute roles={["admin", "manager"]}>
+              <Layout>
+                <SalesInvoiceList />
               </Layout>
             </PrivateRoute>
           }
@@ -363,6 +399,16 @@ export default function App() {
             <PrivateRoute roles={["admin", "manager"]}>
               <Layout>
                 <AddSalesReturn />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/sales-returns"
+          element={
+            <PrivateRoute roles={["admin", "manager"]}>
+              <Layout>
+                <SalesReturnList />
               </Layout>
             </PrivateRoute>
           }

@@ -90,16 +90,29 @@ const Sidebar = () => {
 
           {/* 📁 Purchase */}
           <SidebarDropdown icon="📁" title="Purchase">
-            <NavLink
-              to="/purchase-orders"
-              className="block px-4 py-2 hover:bg-gray-100">
-              📋 Purchase Orders
-            </NavLink>
+            <SidebarDropdown icon="📄" title="Vendor Quotations">
+              <NavLink
+                to="/vendor-quotations/create"
+                className="block px-4 py-2 hover:bg-gray-100">
+                ➕ Create Quotation
+              </NavLink>
+              <NavLink
+                to="/vendor-quotations"
+                className="block px-4 py-2 hover:bg-gray-100">
+                📋 Quotation List
+              </NavLink>
+            </SidebarDropdown>
             <NavLink
               to="/purchase-orders/create"
               className="block px-4 py-2 hover:bg-gray-100">
               ➕ Create PO
             </NavLink>
+            <NavLink
+              to="/purchase-orders"
+              className="block px-4 py-2 hover:bg-gray-100">
+              📋 PO List
+            </NavLink>
+
             <NavLink
               to="/goods-receipt"
               className="block px-4 py-2 hover:bg-gray-100">
@@ -119,11 +132,6 @@ const Sidebar = () => {
               to="/purchase-returns"
               className="block px-4 py-2 hover:bg-gray-100">
               📋 Purchase Return List
-            </NavLink>
-            <NavLink
-              to="/vendor-quotations"
-              className="block px-4 py-2 hover:bg-gray-100">
-              📄 Vendor Quotations
             </NavLink>
           </SidebarDropdown>
 

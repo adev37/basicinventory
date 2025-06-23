@@ -1,8 +1,16 @@
-// backend/models/DeliveryChallan.js
 import mongoose from "mongoose";
 
 const deliveryChallanSchema = new mongoose.Schema({
-  clientName: { type: String, required: true },
+  salesOrder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SalesOrder",
+    required: true,
+  }, // ✅ Link to SO
+  client: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Client",
+    required: true,
+  }, // ✅ Replace string with ref
   items: [
     {
       item: { type: mongoose.Schema.Types.ObjectId, ref: "Item" },

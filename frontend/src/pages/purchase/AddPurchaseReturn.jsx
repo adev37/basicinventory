@@ -11,7 +11,6 @@ const AddPurchaseReturn = () => {
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Fetch GRNs with at least one unreturned item
   useEffect(() => {
     const fetchGRNsAndReturns = async () => {
       try {
@@ -25,16 +24,17 @@ const AddPurchaseReturn = () => {
 
         const returnMap = {};
         for (const ret of allReturns) {
-          if (!ret.grn?._id) continue;
+          if (!ret.grn || !ret.grn._id) continue;
           for (const item of ret.returnedItems) {
-            const key = `${ret.grn._id}_${item.item._id}`;
+            const key = `${ret.grn._id}_${item.item?._id}`;
+            if (!item.item?._id) continue;
             returnMap[key] = (returnMap[key] || 0) + item.returnQty;
           }
         }
 
         const eligibleGRNs = allGRNs.filter((grn) =>
           grn.receivedItems.some((ri) => {
-            const returnedQty = returnMap[`${grn._id}_${ri.item._id}`] || 0;
+            const returnedQty = returnMap[`${grn._id}_${ri.item?._id}`] || 0;
             return returnedQty < ri.receivedQty;
           })
         );
@@ -49,7 +49,6 @@ const AddPurchaseReturn = () => {
     fetchGRNsAndReturns();
   }, []);
 
-  // When a GRN is selected → filter items that still have returnable quantity
   const handleGRNChange = async (grnId) => {
     setSelectedGRN(grnId);
     setItems([]);
@@ -63,11 +62,15 @@ const AddPurchaseReturn = () => {
       ]);
 
       const grnData = grnRes.data;
-      const relatedReturns = returnsRes.data.filter((r) => r.grn._id === grnId);
+
+      const relatedReturns = returnsRes.data.filter(
+        (r) => r.grn && r.grn._id === grnId
+      );
 
       const returnMap = {};
       for (const ret of relatedReturns) {
         for (const item of ret.returnedItems) {
+          if (!item.item?._id) continue;
           const key = item.item._id;
           returnMap[key] = (returnMap[key] || 0) + item.returnQty;
         }
@@ -75,6 +78,8 @@ const AddPurchaseReturn = () => {
 
       const itemList = grnData.receivedItems
         .map((ri) => {
+          if (!ri.item?._id) return null;
+
           const received = ri.receivedQty;
           const returned = returnMap[ri.item._id] || 0;
           const remaining = received - returned;
@@ -98,14 +103,12 @@ const AddPurchaseReturn = () => {
     }
   };
 
-  // Handle input change
   const handleItemChange = (index, field, value) => {
     const updated = [...items];
     updated[index][field] = field === "returnQty" ? Number(value) : value;
     setItems(updated);
   };
 
-  // Submit return
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -129,7 +132,16 @@ const AddPurchaseReturn = () => {
       setItems([]);
       setRemarks("");
     } catch (err) {
-      toast.error(err.response?.data?.message || "❌ Failed to submit return");
+      const serverMessage = err.response?.data?.message;
+
+      if (serverMessage?.includes("Insufficient stock")) {
+        toast.error(
+          "❌ Insufficient stock for one or more items. Please check current stock levels."
+        );
+      } else {
+        toast.error(serverMessage || "❌ Failed to submit return");
+      }
+
       console.error(err);
     }
   };
@@ -143,7 +155,6 @@ const AddPurchaseReturn = () => {
       <form
         onSubmit={handleSubmit}
         className="bg-white p-6 shadow rounded space-y-4">
-        {/* GRN Dropdown */}
         <div>
           <label className="block font-semibold mb-1">Select GRN</label>
           <select
@@ -155,13 +166,12 @@ const AddPurchaseReturn = () => {
             {grns.map((grn) => (
               <option key={grn._id} value={grn._id}>
                 GRN #{grn._id.slice(-5).toUpperCase()} - PO-
-                {grn.purchaseOrder._id.slice(-8)}
+                {grn.purchaseOrder?._id?.slice(-8) || "UNKNOWN"}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Items Input */}
         {items.map((item, idx) => (
           <div key={idx} className="grid grid-cols-6 gap-2 items-center">
             <div className="col-span-2 font-medium">
@@ -193,7 +203,6 @@ const AddPurchaseReturn = () => {
           </div>
         ))}
 
-        {/* Remarks */}
         <div>
           <label className="block font-semibold mb-1">Remarks (optional)</label>
           <textarea

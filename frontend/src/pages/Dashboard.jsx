@@ -16,42 +16,52 @@ import {
 const COLORS = ["#FF8042", "#FFBB28", "#00C49F", "#0088FE", "#A28EFF"];
 
 const Dashboard = () => {
-  const [items, setItems] = useState([]);
+  const [stocks, setStocks] = useState([]);
   const [user, setUser] = useState(null);
+
   const token = localStorage.getItem("token");
 
-  const fetchItems = async () => {
+  // ✅ Fetch stock with item populated
+  const fetchStocks = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/items", {
+      const res = await axios.get("http://localhost:5000/api/stocks", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setItems(res.data);
+      setStocks(res.data);
     } catch (error) {
-      console.error("Error fetching items:", error);
+      console.error("Error fetching stocks:", error);
     }
   };
 
   useEffect(() => {
-    fetchItems();
+    fetchStocks();
     const userData = localStorage.getItem("user");
     if (userData) setUser(JSON.parse(userData));
   }, []);
 
-  const lowStockItems = items.filter(
-    (item) => item.quantity < item.lowStockThreshold
+  // ✅ Total stock quantity
+  const totalQty = stocks.reduce((sum, s) => sum + s.quantity, 0);
+
+  // ✅ Low stock items (uses lowAlert from item)
+  const lowStockItems = stocks.filter(
+    (s) => s.quantity <= (s.item?.lowAlert || 0)
   );
 
-  const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
+  // ✅ Distinct active categories
+  const activeCategories = new Set(
+    stocks.map((s) => s.item?.category?.name).filter(Boolean)
+  );
 
-  // Chart Data
-  const barData = items.map((item) => ({
-    name: item.name,
-    quantity: item.quantity,
+  // ✅ Chart Data for Bar Chart
+  const barData = stocks.map((s) => ({
+    name: s.item?.name || "Unnamed",
+    quantity: s.quantity,
   }));
 
+  // ✅ Pie Chart Data for low stock by category
   const categoryCounts = {};
-  lowStockItems.forEach((item) => {
-    const cat = item.category?.name || "Uncategorized";
+  lowStockItems.forEach((s) => {
+    const cat = s.item?.category?.name || "Uncategorized";
     categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
   });
   const pieData = Object.entries(categoryCounts).map(([name, value]) => ({
@@ -66,17 +76,17 @@ const Dashboard = () => {
         Welcome <strong>{user?.name}</strong> ({user?.role})
       </p>
 
-      {/* Stats Cards */}
+      {/* ✅ Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Items" value={items.length} />
+        <StatCard title="Total Items" value={stocks.length} />
         <StatCard title="Total Stock" value={totalQty} />
         <StatCard title="Low Stock Items" value={lowStockItems.length} />
-        <StatCard title="Active Categories" value={pieData.length} />
+        <StatCard title="Active Categories" value={activeCategories.size} />
       </div>
 
-      {/* Charts */}
+      {/* ✅ Charts */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Bar Chart */}
+        {/* 📦 Bar Chart */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="text-lg font-semibold mb-2">📦 Stock by Item</h2>
           {barData.length > 0 ? (
@@ -93,7 +103,7 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Pie Chart */}
+        {/* ⚠️ Pie Chart */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="text-lg font-semibold mb-2">
             ⚠️ Low Stock by Category
@@ -132,7 +142,7 @@ const Dashboard = () => {
 
 export default Dashboard;
 
-// ✅ Stat Card Component
+// ✅ Mini Stat Card
 const StatCard = ({ title, value }) => (
   <div className="bg-white rounded shadow p-4">
     <p className="text-gray-500 text-sm">{title}</p>

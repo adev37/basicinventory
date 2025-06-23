@@ -22,6 +22,8 @@ import salesInvoiceRoutes from "./routes/salesInvoiceRoutes.js";
 import salesReturnRoutes from "./routes/salesReturnRoutes.js";
 import goodsReceiptRoutes from "./routes/goodsReceiptRoutes.js";
 import purchaseReturnRoutes from "./routes/purchaseReturnRoutes.js";
+import vendorQuotationRoutes from "./routes/vendorQuotationRoutes.js";
+import salesOrderRoutes from "./routes/salesOrderRoutes.js";
 
 dotenv.config();
 
@@ -49,6 +51,8 @@ app.use("/api/stock-adjustments", stockAdjustmentRoutes);
 app.use("/api/sales-invoices", salesInvoiceRoutes);
 app.use("/api/sales-returns", salesReturnRoutes);
 app.use("/api/goods-receipts", goodsReceiptRoutes);
+app.use("/api/vendor-quotations", vendorQuotationRoutes);
+app.use("/api/sales-orders", salesOrderRoutes);
 
 // ✅ Start the server
 const PORT = process.env.PORT || 5000;

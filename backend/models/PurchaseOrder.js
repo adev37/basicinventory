@@ -29,6 +29,16 @@ const PurchaseOrderSchema = new mongoose.Schema({
   },
   remarks: String,
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  source: {
+    type: {
+      type: String,
+    },
+    refId: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: "source.type",
+    },
+  },
 });
 
 const PurchaseOrder = mongoose.model("PurchaseOrder", PurchaseOrderSchema);

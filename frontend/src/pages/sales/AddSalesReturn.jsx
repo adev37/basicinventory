@@ -12,9 +12,6 @@ const AddSalesReturn = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token");
-
-        // Get all sales invoices
         const invoiceRes = await axios.get(
           "http://localhost:5000/api/sales-invoices",
           {
@@ -23,7 +20,6 @@ const AddSalesReturn = () => {
         );
         const invoices = invoiceRes.data;
 
-        // Get all existing returns
         const returnRes = await axios.get(
           "http://localhost:5000/api/sales-returns",
           {
@@ -32,26 +28,26 @@ const AddSalesReturn = () => {
         );
         const returns = returnRes.data;
 
-        // Build a map of returned quantities per item per invoice
         const returnMap = {};
         for (const r of returns) {
           if (!returnMap[r.referenceId]) returnMap[r.referenceId] = {};
           for (const i of r.items) {
-            const itemId = typeof i.item === "object" ? i.item._id : i.item;
+            const itemId =
+              typeof i.item === "object" && i.item !== null
+                ? i.item._id
+                : i.item;
             returnMap[r.referenceId][itemId] =
               (returnMap[r.referenceId][itemId] || 0) + i.quantity;
           }
         }
 
-        // Filter out invoices where all items are fully returned
         const eligible = invoices.filter((inv) => {
           return inv.items.some((invItem) => {
             const itemId =
-              typeof invItem.item === "object"
+              typeof invItem.item === "object" && invItem.item !== null
                 ? invItem.item._id
                 : invItem.item;
             const returnedQty = returnMap[inv._id]?.[itemId] || 0;
-
             return returnedQty < invItem.quantity;
           });
         });
@@ -63,7 +59,7 @@ const AddSalesReturn = () => {
     };
 
     fetchData();
-  }, []);
+  }, [token]);
 
   const handleInvoiceSelect = (e) => {
     const invoiceId = e.target.value;
@@ -71,32 +67,54 @@ const AddSalesReturn = () => {
 
     const invoice = invoices.find((inv) => inv._id === invoiceId);
     if (invoice) {
-      setSelectedItems(
-        invoice.items.map((i) => ({ item: i.item._id, quantity: i.quantity }))
-      );
+      const itemsToSet = invoice.items.map((i) => {
+        const itemId =
+          typeof i.item === "object" && i.item !== null ? i.item._id : i.item;
+        const itemName =
+          typeof i.item === "object" && i.item !== null
+            ? i.item.name
+            : "Unnamed Item";
+
+        return {
+          item: itemId,
+          quantity: i.quantity,
+          name: itemName,
+        };
+      });
+      setSelectedItems(itemsToSet);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await axios.post(
-      "http://localhost:5000/api/sales-returns",
-      {
-        referenceInvoiceId: selectedInvoiceId,
-        items: selectedItems,
-        reason,
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    alert("Sales return submitted");
-    setSelectedInvoiceId("");
-    setSelectedItems([]);
-    setReason("");
+    try {
+      await axios.post(
+        "http://localhost:5000/api/sales-returns",
+        {
+          referenceInvoiceId: selectedInvoiceId,
+          items: selectedItems.map(({ item, quantity }) => ({
+            item,
+            quantity,
+          })),
+          reason,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      alert("✅ Sales return submitted");
+      setSelectedInvoiceId("");
+      setSelectedItems([]);
+      setReason("");
+    } catch (err) {
+      console.error("❌ Submit failed:", err);
+      alert("❌ Failed to submit return");
+    }
   };
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow">
       <h2 className="text-2xl font-bold mb-4">Create Sales Return</h2>
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <select
           className="w-full border p-2 rounded"
@@ -106,18 +124,21 @@ const AddSalesReturn = () => {
           <option value="">-- Select Invoice --</option>
           {invoices.map((inv) => (
             <option key={inv._id} value={inv._id}>
-              {inv.invoiceNumber}
+              {inv.invoiceNumber ||
+                `Invoice #${inv._id.slice(-6).toUpperCase()}`}
             </option>
           ))}
         </select>
 
-        <ul className="bg-gray-50 border rounded p-2">
-          {selectedItems.map((item, idx) => (
-            <li key={idx} className="py-1 text-sm">
-              Item ID: {item.item}, Qty: {item.quantity}
-            </li>
-          ))}
-        </ul>
+        {selectedItems.length > 0 && (
+          <ul className="bg-gray-50 border rounded p-2 text-sm">
+            {selectedItems.map((item, idx) => (
+              <li key={idx}>
+                {item.name || item.item} — Qty: {item.quantity}
+              </li>
+            ))}
+          </ul>
+        )}
 
         <input
           type="text"

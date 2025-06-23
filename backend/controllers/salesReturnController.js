@@ -78,16 +78,28 @@ export const createSalesReturn = async (req, res) => {
   }
 };
 
+// controllers/salesReturnController.js
 export const getSalesReturns = async (req, res) => {
   try {
     const returns = await SalesReturn.find()
-      .populate("items.item", "name sku")
+      .populate({
+        path: "referenceId",
+        select: "invoiceNumber client",
+        populate: {
+          path: "client",
+          model: "Client", // ✅ explicitly tell Mongoose it's the Client model
+          select: "companyName",
+        },
+      })
+      .populate("items.item", "name")
       .sort({ createdAt: -1 });
+
     res.json(returns);
   } catch (err) {
     console.error("❌ Error in getSalesReturns:", err);
-    res
-      .status(500)
-      .json({ message: "Failed to fetch Sales Returns", error: err.message });
+    res.status(500).json({
+      message: "Failed to fetch Sales Returns",
+      error: err.message,
+    });
   }
 };
