@@ -1,81 +1,88 @@
-import User from "../models/User.js";
-import generateToken from "../utils/generateToken.js";
+// backend/controllers/authController.js
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import UserModel from "../models/User.js";
 
-// @route POST /api/auth/register
-export const registerUser = async (req, res) => {
+export const signup = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
-    const userExists = await User.findOne({ email });
-    if (userExists)
-      return res.status(400).json({ message: "User already exists" });
+    const existingUser = await UserModel.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({
+        message: "User already exists, please log in.",
+        success: false,
+      });
+    }
 
-    const user = await User.create({
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new UserModel({
       name,
       email,
-      password, // schema will hash it
-      role,
-      plainPassword: password,
+      password: hashedPassword,
     });
 
-    const token = generateToken(user);
+    await newUser.save();
 
-    res.status(201).json({
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        plainPassword: user.plainPassword,
-        active: user.active, // ✅ ADD THIS
-      },
-    });
-  } catch (err) {
-    console.error("Register Error:", err);
-    res.status(500).json({ message: "Registration failed" });
+    res.status(201).json({ message: "Signup successful", success: true });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", success: false });
   }
 };
 
-// @route POST /api/auth/login
-export const loginUser = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const user = await UserModel.findOne({ email });
 
-    const user = await User.findOne({ email }).select(
-      "+password +plainPassword +active"
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(403).json({
+        message: "Auth failed, email or password is incorrect",
+        success: false,
+      });
+    }
+
+    const jwtToken = jwt.sign(
+      { email: user.email, _id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
     );
 
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // ✅ Check if user is inactive
-    if (!user.active) {
-      return res
-        .status(403)
-        .json({ message: "Your account is inactive. Contact admin." });
-    }
-
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    const token = generateToken(user);
-
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        plainPassword: user.plainPassword,
-      },
+    res.status(200).json({
+      message: "Login successful",
+      success: true,
+      jwtToken,
+      email: user.email,
+      name: user.name,
     });
-  } catch (err) {
-    console.error("Login Error:", err);
-    res.status(500).json({ message: "Login failed" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", success: false });
+  }
+};
+
+export const updateUser = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { name, email } = req.body;
+
+    await UserModel.findByIdAndUpdate(userId, { name, email }, { new: true });
+
+    res.json({ success: true, message: "User updated successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const userDetail = async (req, res) => {
+  try {
+    const user = await UserModel.findById(req.user._id).select("-password");
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

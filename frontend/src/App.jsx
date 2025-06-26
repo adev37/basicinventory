@@ -1,491 +1,100 @@
-import React from "react";
+// src/App.jsx
+import React, { useEffect, useState, useCallback } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
-// Public Pages
-import Login from "./pages/Login";
-
-// Dashboard
-import Dashboard from "./pages/Dashboard";
-
-// Users
-import AdminUsers from "./pages/users/AdminUsers";
-import AddUserForm from "./pages/users/AddUserForm";
-
-// Items
-import ItemList from "./pages/inventory/items/ItemList";
-import AddItemForm from "./pages/inventory/items/AddItemForm";
-
-// Units
-import AddUnitForm from "./pages/units/AddUnitForm";
-
-// Categories
-import AddCategoryForm from "./pages/categories/AddCategoryForm";
-
-// Vendors
-import VendorList from "./pages/vendors/VendorList";
-import AddVendorForm from "./pages/vendors/AddVendorForm";
-
-// Layout
 import Layout from "./components/layout/Layout";
+import PrivateRoute from "./components/PrivateRoute";
 
-// Clients
-import ClientList from "./pages/clients/ClientList";
-import AddClientForm from "./pages/clients/AddClientForm";
+// Auth Pages
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
-// Purchase
-import AddPOForm from "./pages/purchase/AddPurchaseOrder";
-import PurchaseOrderList from "./pages/purchase/PurchaseOrderList";
-import AddGRNForm from "./pages/purchase/AddGRN";
-import AddPurchaseReturn from "./pages/purchase/AddPurchaseReturn";
-import PurchaseReturnList from "./pages/purchase/PurchaseReturnList";
-import GRNList from "./pages/purchase/GRNList";
-import AddVendorQuotation from "./pages/purchase/vendor quotation/AddVendorQuotation";
-import VendorQuotationList from "./pages/purchase/vendor quotation/VendorQuotationList";
+// Protected Pages
+import Dashboard from "./pages/Dashboard";
+import ItemList from "./pages/items/ItemList";
+import AddItem from "./pages/items/AddItem";
+import WarehouseList from "./pages/warehouses/WarehouseList";
+import AddWarehouse from "./pages/warehouses/AddWarehouse";
+import StockIn from "./pages/stock/AddStockIn";
+import StockOut from "./pages/stock/AddStockOut";
+import CurrentStock from "./pages/reports/CurrentStock";
+import StockLedger from "./pages/reports/StockLedger";
+import DemoReturns from "./pages/demo/ViewDemoReturns";
+import AddDemoItems from "./pages/demo/AddDemoItems";
+import ViewDemoReturns from "./pages/demo/ViewDemoReturns";
 
-// Delivery Challans
-import AddDeliveryChallan from "./pages/sales/AddDeliveryChallan";
-import DeliveryChallanList from "./pages/sales/DeliveryChallanList";
+const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-// Sales
-import AddSalesInvoice from "./pages/sales/AddSalesInvoice";
-import InvoiceList from "./pages/sales/InvoiceList";
-import AddSalesOrder from "./pages/sales/AddSalesOrder";
-import SalesOrderList from "./pages/sales/SalesOrderList";
-import AddSalesReturn from "./pages/sales/AddSalesReturn";
-import SalesReturnList from "./pages/sales/SalesReturnList";
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
 
-// Stock
-import CurrentStock from "./pages/inventory/stock/CurrentStock";
+    if (token) setIsAuthenticated(true);
+    if (userData) setUser(JSON.parse(userData));
+    setLoading(false);
+  }, []);
 
-// Reports
-import StockReport from "./pages/reports/StockReport";
-import SalesReport from "./pages/reports/SalesReport";
-import SalesReturnReport from "./pages/reports/SalesReturnReport";
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setIsAuthenticated(false);
+    setUser(null);
+  }, []);
 
-// Stock Adjustments
-import AddStockAdjustment from "./pages/inventory/stock-adjustments/AddStockAdjustment";
-import StockAdjustmentList from "./pages/inventory/stock-adjustments/StockAdjustmentList";
-import SalesInvoiceList from "./pages/sales/SalesInvoiceList";
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white">
+        <p className="text-blue-500 text-lg animate-pulse">Loading app...</p>
+      </div>
+    );
+  }
 
-const getUser = () => {
-  const user = localStorage.getItem("user");
-  return user ? JSON.parse(user) : null;
-};
-
-const PrivateRoute = ({ children, roles }) => {
-  const user = getUser();
-  if (!user) return <Navigate to="/login" />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
-  return children;
-};
-
-export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Route */}
-        <Route path="/login" element={<Login />} />
+        {/* Public Routes */}
+        <Route
+          path="/login"
+          element={<Login setIsAuthenticated={setIsAuthenticated} />}
+        />
+        <Route path="/signup" element={<Signup />} />
 
         {/* Protected Routes */}
         <Route
           path="/"
           element={
-            <PrivateRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
+            <PrivateRoute
+              isAuthenticated={isAuthenticated}
+              element={<Layout handleLogout={handleLogout} user={user} />}
+            />
+          }>
+          <Route index element={<Dashboard />} />
+          <Route path="items" element={<ItemList />} />
+          <Route path="add-item" element={<AddItem />} />
+          <Route path="warehouses" element={<WarehouseList />} />
+          <Route path="add-warehouse" element={<AddWarehouse />} />
+          <Route path="stock-in" element={<StockIn />} />
+          <Route path="stock-out" element={<StockOut />} />
+          <Route path="stock" element={<CurrentStock />} />
+          <Route path="ledger" element={<StockLedger />} />
+          <Route path="demo-returns" element={<ViewDemoReturns />} />
+          <Route path="Add-demo-returns" element={<AddDemoItems />} />{" "}
+          {/* ✅ FIXED */}
+        </Route>
 
-        {/* Items */}
-        <Route
-          path="/items"
-          element={
-            <PrivateRoute>
-              <Layout>
-                <ItemList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/add-item"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-3xl mx-auto mt-6">
-                  <AddItemForm />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Vendors */}
-        <Route
-          path="/vendors"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <Layout>
-                <VendorList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/add-vendor"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <Layout>
-                <div className="max-w-3xl mx-auto mt-6">
-                  <AddVendorForm />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Clients */}
-        <Route
-          path="/clients"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <Layout>
-                <ClientList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/add-client"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <Layout>
-                <div className="max-w-3xl mx-auto mt-6">
-                  <AddClientForm />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Units */}
-        <Route
-          path="/add-unit"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <Layout>
-                <div className="max-w-3xl mx-auto mt-6">
-                  <AddUnitForm />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Categories */}
-        <Route
-          path="/add-category"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <Layout>
-                <div className="max-w-3xl mx-auto mt-6">
-                  <AddCategoryForm />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Users */}
-        <Route
-          path="/admin/users"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <Layout>
-                <AdminUsers />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/add-user"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <Layout>
-                <div className="max-w-3xl mx-auto mt-6">
-                  <AddUserForm />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Purchase Orders */}
-        <Route
-          path="/purchase-orders"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <PurchaseOrderList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/purchase-orders/create"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-5xl mx-auto mt-6">
-                  <AddPOForm />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/goods-receipt"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-5xl mx-auto mt-6">
-                  <AddGRNForm />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/goods-receipt/list"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-5xl mx-auto mt-6">
-                  <GRNList />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/purchase-returns"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <PurchaseReturnList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/purchase-returns/create"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-5xl mx-auto mt-6">
-                  <AddPurchaseReturn />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        {/* Vendor Quotations */}
-        <Route
-          path="/vendor-quotations"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <VendorQuotationList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/vendor-quotations/create"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-5xl mx-auto mt-6">
-                  <AddVendorQuotation />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Delivery Challans */}
-        <Route
-          path="/delivery-challans"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <DeliveryChallanList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/delivery-challans/create"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-5xl mx-auto mt-6">
-                  <AddDeliveryChallan />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Sales Orders */}
-        <Route
-          path="/sales-orders"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <SalesOrderList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/sales-orders/create"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-5xl mx-auto mt-6">
-                  <AddSalesOrder />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Sales Invoice */}
-        <Route
-          path="/sales-invoices/add"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <AddSalesInvoice />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/sales-invoices"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <SalesInvoiceList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Sales Returns */}
-        <Route
-          path="/sales-returns/create"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <AddSalesReturn />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/sales-returns"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <SalesReturnList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Reports */}
-        <Route
-          path="/reports/stock"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-6xl mx-auto mt-6">
-                  <StockReport />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/reports/sales"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-6xl mx-auto mt-6">
-                  <SalesReport />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/reports/returns"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <div className="max-w-6xl mx-auto mt-6">
-                  <SalesReturnReport />
-                </div>
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Stock Adjustments */}
-        <Route
-          path="/stock-adjustments"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <StockAdjustmentList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/stock-adjustments/add"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <AddStockAdjustment />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Stock Page */}
-        <Route
-          path="/stock"
-          element={
-            <PrivateRoute roles={["admin", "manager"]}>
-              <Layout>
-                <CurrentStock />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
+        {/* Catch-All */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
-}
+};
+
+export default App;

@@ -1,52 +1,55 @@
-// src/pages/Login.jsx
+// src/pages/Signup.jsx
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const Login = ({ setIsAuthenticated }) => {
+const Signup = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        "http://localhost:5000/api/auth/signup",
         form
       );
-      const data = res.data;
-
-      if (data.success) {
-        localStorage.setItem("token", data.jwtToken);
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            name: data.name,
-            email: data.email,
-          })
-        );
-        setIsAuthenticated(true);
-        navigate("/");
+      if (res.data.success) {
+        alert("Signup successful!");
+        navigate("/login");
       } else {
-        setError(data.message);
+        setError(res.data.message);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed.");
+      setError(err.response?.data?.message || "Signup failed.");
     }
   };
 
   return (
     <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Login</h2>
+      <h2 className="text-2xl font-bold mb-4">Sign Up</h2>
       {error && <p className="text-red-500 mb-3">{error}</p>}
-      <form onSubmit={handleLogin} className="space-y-4">
+      <form onSubmit={handleSignup} className="space-y-4">
+        <input
+          type="text"
+          name="name"
+          placeholder="Full Name"
+          value={form.name}
+          onChange={handleChange}
+          required
+          className="w-full border px-3 py-2 rounded"
+        />
         <input
           type="email"
           name="email"
@@ -68,11 +71,11 @@ const Login = ({ setIsAuthenticated }) => {
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded w-full">
-          Login
+          Sign Up
         </button>
       </form>
     </div>
   );
 };
 
-export default Login;
+export default Signup;

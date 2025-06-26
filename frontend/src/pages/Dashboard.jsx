@@ -17,11 +17,12 @@ const COLORS = ["#FF8042", "#FFBB28", "#00C49F", "#0088FE", "#A28EFF"];
 
 const Dashboard = () => {
   const [stocks, setStocks] = useState([]);
+  const [stockOut, setStockOut] = useState([]);
   const [user, setUser] = useState(null);
 
   const token = localStorage.getItem("token");
 
-  // ✅ Fetch stock with item populated
+  // ✅ Fetch current stock
   const fetchStocks = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/stocks", {
@@ -33,8 +34,21 @@ const Dashboard = () => {
     }
   };
 
+  // ✅ Fetch stock out records
+  const fetchStockOuts = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/stock-out", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setStockOut(res.data);
+    } catch (error) {
+      console.error("Error fetching stock out:", error);
+    }
+  };
+
   useEffect(() => {
     fetchStocks();
+    fetchStockOuts();
     const userData = localStorage.getItem("user");
     if (userData) setUser(JSON.parse(userData));
   }, []);
@@ -47,24 +61,19 @@ const Dashboard = () => {
     (s) => s.quantity <= (s.item?.lowAlert || 0)
   );
 
-  // ✅ Distinct active categories
-  const activeCategories = new Set(
-    stocks.map((s) => s.item?.category?.name).filter(Boolean)
-  );
-
-  // ✅ Chart Data for Bar Chart
+  // ✅ Bar Chart Data: Item vs Quantity
   const barData = stocks.map((s) => ({
     name: s.item?.name || "Unnamed",
     quantity: s.quantity,
   }));
 
-  // ✅ Pie Chart Data for low stock by category
-  const categoryCounts = {};
-  lowStockItems.forEach((s) => {
-    const cat = s.item?.category?.name || "Uncategorized";
-    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-  });
-  const pieData = Object.entries(categoryCounts).map(([name, value]) => ({
+  // ✅ Pie Chart: Purpose-wise count
+  const purposeCounts = stockOut.reduce((acc, s) => {
+    const purpose = s.purpose || "Unknown";
+    acc[purpose] = (acc[purpose] || 0) + 1;
+    return acc;
+  }, {});
+  const pieData = Object.entries(purposeCounts).map(([name, value]) => ({
     name,
     value,
   }));
@@ -76,17 +85,17 @@ const Dashboard = () => {
         Welcome <strong>{user?.name}</strong> ({user?.role})
       </p>
 
-      {/* ✅ Summary Stats */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <StatCard title="Total Items" value={stocks.length} />
         <StatCard title="Total Stock" value={totalQty} />
         <StatCard title="Low Stock Items" value={lowStockItems.length} />
-        <StatCard title="Active Categories" value={activeCategories.size} />
+        <StatCard title="Stock Out Purpose" value={pieData.length} />
       </div>
 
-      {/* ✅ Charts */}
+      {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* 📦 Bar Chart */}
+        {/* Bar Chart */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="text-lg font-semibold mb-2">📦 Stock by Item</h2>
           {barData.length > 0 ? (
@@ -103,10 +112,10 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* ⚠️ Pie Chart */}
+        {/* Pie Chart */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="text-lg font-semibold mb-2">
-            ⚠️ Low Stock by Category
+            ⚠️ Stock Out by Purpose
           </h2>
           {pieData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -132,7 +141,7 @@ const Dashboard = () => {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-gray-400 italic">No low stock categories</p>
+            <p className="text-gray-400 italic">No purpose data found</p>
           )}
         </div>
       </div>
