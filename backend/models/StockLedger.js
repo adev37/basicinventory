@@ -1,4 +1,3 @@
-// models/StockLedger.js
 import mongoose from "mongoose";
 
 const stockLedgerSchema = new mongoose.Schema(
@@ -22,29 +21,47 @@ const stockLedgerSchema = new mongoose.Schema(
       enum: ["IN", "OUT"],
       required: true,
     },
-    purpose: {
-      type: String, // Sale, Demo, Receiving
+    type: {
+      type: String,
+      enum: [
+        "In",
+        "Out",
+        "Transfer In",
+        "Transfer Out",
+        "Return In",
+        "Return Out",
+      ],
+      required: true,
     },
-    returnDate: {
-      type: Date, // Expected return date (only when OUT for Demo)
+    purpose: {
+      type: String,
+      enum: ["Sale", "Demo", "Demo Return"],
+      default: null,
     },
     returned: {
       type: Boolean,
-      default: false,
+      default: null, // Used for Demo Out entries
     },
-    reason: {
-      type: String,
-    },
-    remarks: {
-      type: String,
+    returnDate: {
+      type: Date, // Expected return date for Demo
     },
     date: {
       type: Date,
       default: Date.now,
     },
+    remarks: {
+      type: String,
+    },
+
+    // ✅ NEW: Link return record to original OUT record
+    referenceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "StockLedger",
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
-const StockLedger = mongoose.model("StockLedger", stockLedgerSchema);
-export default StockLedger;
+export default mongoose.models.StockLedger ||
+  mongoose.model("StockLedger", stockLedgerSchema);

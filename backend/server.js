@@ -11,6 +11,7 @@ import stockLedgerRoutes from "./routes/stockLedgerRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import currentStockRoutes from "./routes/currentStockRoutes.js";
 import demoReturnRoutes from "./routes/demoReturnRoutes.js";
+import stockTransferRoutes from "./routes/stockTransferRoutes.js";
 
 // Load env vars
 dotenv.config();
@@ -34,6 +35,7 @@ app.use("/api/stock-out", stockOutRoutes);
 app.use("/api/stock-ledger", stockLedgerRoutes);
 app.use("/api/current-stock", currentStockRoutes);
 app.use("/api/demo-returns", demoReturnRoutes);
+app.use("/api/stock-transfers", stockTransferRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

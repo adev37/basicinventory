@@ -5,15 +5,18 @@ import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
   });
+
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setError("");
   };
 
   const handleSignup = async (e) => {
@@ -25,21 +28,27 @@ const Signup = () => {
         "http://localhost:5000/api/auth/signup",
         form
       );
-      if (res.data.success) {
-        alert("Signup successful!");
+      const data = res.data;
+
+      if (data.success) {
+        alert("🎉 Signup successful!");
         navigate("/login");
       } else {
-        setError(res.data.message);
+        setError(data.message || "Signup failed.");
       }
     } catch (err) {
+      console.error("Signup error:", err);
       setError(err.response?.data?.message || "Signup failed.");
     }
   };
 
   return (
     <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Sign Up</h2>
-      {error && <p className="text-red-500 mb-3">{error}</p>}
+      <h2 className="text-2xl font-bold mb-4 text-center">📝 Sign Up</h2>
+      {error && (
+        <p className="text-red-600 mb-3 text-sm text-center">{error}</p>
+      )}
+
       <form onSubmit={handleSignup} className="space-y-4">
         <input
           type="text"
@@ -50,6 +59,7 @@ const Signup = () => {
           required
           className="w-full border px-3 py-2 rounded"
         />
+
         <input
           type="email"
           name="email"
@@ -59,6 +69,7 @@ const Signup = () => {
           required
           className="w-full border px-3 py-2 rounded"
         />
+
         <input
           type="password"
           name="password"
@@ -68,9 +79,10 @@ const Signup = () => {
           required
           className="w-full border px-3 py-2 rounded"
         />
+
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded w-full">
+          className="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700 transition">
           Sign Up
         </button>
       </form>

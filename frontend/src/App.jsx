@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import {
   BrowserRouter as Router,
@@ -9,6 +8,10 @@ import {
 
 import Layout from "./components/layout/Layout";
 import PrivateRoute from "./components/PrivateRoute";
+
+// React Toastify setup
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Auth Pages
 import Login from "./pages/Login";
@@ -24,9 +27,10 @@ import StockIn from "./pages/stock/AddStockIn";
 import StockOut from "./pages/stock/AddStockOut";
 import CurrentStock from "./pages/reports/CurrentStock";
 import StockLedger from "./pages/reports/StockLedger";
-import DemoReturns from "./pages/demo/ViewDemoReturns";
 import AddDemoItems from "./pages/demo/AddDemoItems";
 import ViewDemoReturns from "./pages/demo/ViewDemoReturns";
+import StockTransfer from "./pages/stock-transfer/StockTransfer";
+import TransferReport from "./pages/stock-transfer/TransferReport";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -68,31 +72,32 @@ const App = () => {
         <Route path="/signup" element={<Signup />} />
 
         {/* Protected Routes */}
-        <Route
-          path="/"
-          element={
-            <PrivateRoute
-              isAuthenticated={isAuthenticated}
-              element={<Layout handleLogout={handleLogout} user={user} />}
-            />
-          }>
-          <Route index element={<Dashboard />} />
-          <Route path="items" element={<ItemList />} />
-          <Route path="add-item" element={<AddItem />} />
-          <Route path="warehouses" element={<WarehouseList />} />
-          <Route path="add-warehouse" element={<AddWarehouse />} />
-          <Route path="stock-in" element={<StockIn />} />
-          <Route path="stock-out" element={<StockOut />} />
-          <Route path="stock" element={<CurrentStock />} />
-          <Route path="ledger" element={<StockLedger />} />
-          <Route path="demo-returns" element={<ViewDemoReturns />} />
-          <Route path="Add-demo-returns" element={<AddDemoItems />} />{" "}
-          {/* ✅ FIXED */}
+        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+          <Route
+            path="/"
+            element={<Layout handleLogout={handleLogout} user={user} />}>
+            <Route index element={<Dashboard />} />
+            <Route path="items" element={<ItemList />} />
+            <Route path="add-item" element={<AddItem />} />
+            <Route path="warehouses" element={<WarehouseList />} />
+            <Route path="add-warehouse" element={<AddWarehouse />} />
+            <Route path="stock-in" element={<StockIn />} />
+            <Route path="stock-out" element={<StockOut />} />
+            <Route path="stock" element={<CurrentStock />} />
+            <Route path="ledger" element={<StockLedger />} />
+            <Route path="Add-demo-returns" element={<AddDemoItems />} />
+            <Route path="demo-returns" element={<ViewDemoReturns />} />
+            <Route path="stock-transfer" element={<StockTransfer />} />
+            <Route path="transfer-report" element={<TransferReport />} />
+          </Route>
         </Route>
 
         {/* Catch-All */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+
+      {/* 🟢 Global Toast Notification Container */}
+      <ToastContainer position="top-right" autoClose={3000} />
     </Router>
   );
 };

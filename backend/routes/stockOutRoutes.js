@@ -5,8 +5,11 @@ import {
   getAllStockOuts,
   getPendingDemoReturns,
 } from "../controllers/stockOutController.js";
+import verifyToken from "../middleware/verifyToken.js";
 
 const router = express.Router();
+
+router.use(verifyToken); // 🔒 all routes below require token
 
 router.post("/", createStockOut);
 router.get("/", getAllStockOuts);

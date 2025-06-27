@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
+import API from "../../utils/axiosInstance";
+import { toast } from "react-toastify";
 
 const AddItem = () => {
   const [form, setForm] = useState({
@@ -9,18 +10,15 @@ const AddItem = () => {
     minStockAlert: "",
   });
 
-  const [error, setError] = useState("");
-
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setError(""); // clear error on input
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/items", form);
-      alert("✅ Item added successfully.");
+      await API.post("/items", form);
+      toast.success("✅ Item added successfully.");
       setForm({
         name: "",
         modelNo: "",
@@ -28,11 +26,11 @@ const AddItem = () => {
         minStockAlert: "",
       });
     } catch (err) {
-      if (err.response?.status === 400) {
-        setError(err.response.data.message);
-      } else {
-        setError("Something went wrong. Please try again.");
-      }
+      const message =
+        err.response?.status === 400
+          ? err.response.data.message
+          : "❌ Something went wrong. Please try again.";
+      toast.error(message);
     }
   };
 
@@ -95,10 +93,6 @@ const AddItem = () => {
             className="w-full p-2 border rounded"
           />
         </div>
-
-        {error && (
-          <div className="col-span-2 text-red-600 font-medium">{error}</div>
-        )}
 
         <button
           type="submit"

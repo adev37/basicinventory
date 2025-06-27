@@ -2,10 +2,11 @@
 import Item from "../models/Item.js";
 import StockLedger from "../models/StockLedger.js";
 
+// controllers/currentStockController.js (MODIFIED)
 export const getCurrentStock = async (req, res) => {
   try {
     const entries = await StockLedger.find()
-      .populate("item", "name modelNo companyName") // 👈 include companyName
+      .populate("item", "name modelNo companyName")
       .populate("warehouse", "name");
 
     const stockMap = {};
@@ -17,9 +18,11 @@ export const getCurrentStock = async (req, res) => {
 
       if (!stockMap[key]) {
         stockMap[key] = {
+          itemId: item._id,
+          warehouseId: warehouse._id,
           item: item.name || "Unknown",
           modelNo: item.modelNo || "-",
-          companyName: item.companyName || "Unknown", // 👈 added
+          companyName: item.companyName || "Unknown",
           warehouse: warehouse.name || "Unknown",
           quantity: 0,
         };
@@ -38,37 +41,37 @@ export const getCurrentStock = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
   try {
-    const ledgerEntries = await StockLedger.find().populate("item");
+    const ledgerEntries = await StockLedger.find().populate("item warehouse");
 
-    const stockMap = {}; // itemId => quantity + minStockAlert
+    const stockMap = {}; // key = itemId + warehouseId
 
     for (const entry of ledgerEntries) {
       const item = entry.item;
-      if (!item || !item._id) continue;
+      const warehouse = entry.warehouse;
+      if (!item || !warehouse) continue;
 
-      const id = item._id.toString();
+      const key = `${item._id}_${warehouse._id}`;
 
-      if (!stockMap[id]) {
-        stockMap[id] = {
+      if (!stockMap[key]) {
+        stockMap[key] = {
           quantity: 0,
-          minStockAlert: item.minStockAlert || 0,
         };
       }
 
-      stockMap[id].quantity += entry.quantity;
+      stockMap[key].quantity += entry.quantity;
     }
 
     const totalItems = await Item.countDocuments();
+
     const totalStock = Object.values(stockMap).reduce(
       (sum, s) => sum + s.quantity,
       0
     );
 
+    // 🔥 Set fixed threshold: Low Stock if quantity < 5
     const lowStockItems = Object.values(stockMap).filter(
-      (s) => s.quantity <= s.minStockAlert
+      (s) => s.quantity < 5
     ).length;
-
-    // ✅ Debug logs
 
     res.json({
       totalItems,

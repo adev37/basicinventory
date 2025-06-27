@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../utils/axiosInstance";
 import {
   BarChart,
   Bar,
@@ -16,63 +16,87 @@ import {
 const COLORS = ["#FF8042", "#FFBB28", "#00C49F", "#0088FE", "#A28EFF"];
 
 const Dashboard = () => {
+  const [user, setUser] = useState(null);
   const [stocks, setStocks] = useState([]);
   const [stockOut, setStockOut] = useState([]);
-  const [user, setUser] = useState(null);
+  const [stats, setStats] = useState({
+    totalItems: 0,
+    totalStock: 0,
+    lowStockItems: 0,
+  });
+  const [saleOutCount, setSaleOutCount] = useState(0);
+  const [demoPendingCount, setDemoPendingCount] = useState(0);
 
-  const token = localStorage.getItem("token");
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) setUser(JSON.parse(userData));
+    fetchDashboardStats();
+    fetchStocks();
+    fetchStockOuts();
+    fetchDemoPendingReturns();
+  }, []);
 
-  // ✅ Fetch current stock
+  const fetchDashboardStats = async () => {
+    try {
+      const res = await API.get("/current-stock/summary");
+      setStats((prev) => ({
+        ...prev,
+        totalItems: res.data.totalItems,
+        totalStock: res.data.totalStock,
+      }));
+    } catch (err) {
+      console.error("Failed to load dashboard stats", err);
+    }
+  };
+
   const fetchStocks = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/stocks", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await API.get("/current-stock");
       setStocks(res.data);
+
+      // ✅ Low Stock Logic: any item < 5 units
+      const low = res.data.filter((s) => s.quantity < 5).length;
+      setStats((prev) => ({
+        ...prev,
+        lowStockItems: low,
+      }));
     } catch (error) {
       console.error("Error fetching stocks:", error);
     }
   };
 
-  // ✅ Fetch stock out records
   const fetchStockOuts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/stock-out", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await API.get("/stock-out");
       setStockOut(res.data);
+      const saleCount = res.data.filter((s) => s.purpose === "Sale").length;
+      setSaleOutCount(saleCount);
     } catch (error) {
       console.error("Error fetching stock out:", error);
     }
   };
 
-  useEffect(() => {
-    fetchStocks();
-    fetchStockOuts();
-    const userData = localStorage.getItem("user");
-    if (userData) setUser(JSON.parse(userData));
-  }, []);
+  const fetchDemoPendingReturns = async () => {
+    try {
+      const res = await API.get("/demo-returns");
+      setDemoPendingCount(res.data.length);
+    } catch (error) {
+      console.error("Error fetching demo pending returns:", error);
+    }
+  };
 
-  // ✅ Total stock quantity
-  const totalQty = stocks.reduce((sum, s) => sum + s.quantity, 0);
-
-  // ✅ Low stock items (uses lowAlert from item)
-  const lowStockItems = stocks.filter(
-    (s) => s.quantity <= (s.item?.lowAlert || 0)
-  );
-
-  // ✅ Bar Chart Data: Item vs Quantity
   const barData = stocks.map((s) => ({
-    name: s.item?.name || "Unnamed",
+    name:
+      s.item && s.item.name ? `${s.item.name} (${s.item.modelNo})` : "Unnamed",
     quantity: s.quantity,
   }));
 
-  // ✅ Pie Chart: Purpose-wise count
   const purposeCounts = stockOut.reduce((acc, s) => {
     const purpose = s.purpose || "Unknown";
     acc[purpose] = (acc[purpose] || 0) + 1;
     return acc;
   }, {});
+
   const pieData = Object.entries(purposeCounts).map(([name, value]) => ({
     name,
     value,
@@ -85,17 +109,15 @@ const Dashboard = () => {
         Welcome <strong>{user?.name}</strong> ({user?.role})
       </p>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Items" value={stocks.length} />
-        <StatCard title="Total Stock" value={totalQty} />
-        <StatCard title="Low Stock Items" value={lowStockItems.length} />
-        <StatCard title="Stock Out Purpose" value={pieData.length} />
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <StatCard title="Total Items" value={stats.totalItems} />
+        <StatCard title="Total Stock" value={stats.totalStock} />
+        <StatCard title="Low Stock Items" value={stats.lowStockItems} />
+        <StatCard title="Stock Out (Sale)" value={saleOutCount} />
+        <StatCard title="Demo Pending Return" value={demoPendingCount} />
       </div>
 
-      {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Bar Chart */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="text-lg font-semibold mb-2">📦 Stock by Item</h2>
           {barData.length > 0 ? (
@@ -112,7 +134,6 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Pie Chart */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="text-lg font-semibold mb-2">
             ⚠️ Stock Out by Purpose
@@ -127,7 +148,6 @@ const Dashboard = () => {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  fill="#FF8042"
                   label>
                   {pieData.map((entry, index) => (
                     <Cell
@@ -151,7 +171,6 @@ const Dashboard = () => {
 
 export default Dashboard;
 
-// ✅ Mini Stat Card
 const StatCard = ({ title, value }) => (
   <div className="bg-white rounded shadow p-4">
     <p className="text-gray-500 text-sm">{title}</p>

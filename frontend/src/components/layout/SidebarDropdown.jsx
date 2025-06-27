@@ -1,4 +1,3 @@
-// components/layout/SidebarDropdown.jsx
 import React, { useState, useRef } from "react";
 
 const SidebarDropdown = ({ icon, title, children }) => {

@@ -6,7 +6,6 @@ export const createStockIn = async (req, res) => {
   try {
     const { item, warehouse, quantity, date, remarks } = req.body;
 
-    // 1. Create StockIn Entry
     const entry = await StockIn.create({
       item,
       warehouse,
@@ -15,15 +14,17 @@ export const createStockIn = async (req, res) => {
       remarks,
     });
 
-    // 2. Log entry in Stock Ledger with action 'IN'
     await StockLedger.create({
       item,
       warehouse,
       quantity,
-      action: "IN", // ✅ Required for ledger
-      operation: "Stock In",
-      remarks,
+      action: "IN", // ✅ Required
+      type: "In", // ✅ Required
+      purpose: null, // Optional
+      returned: null, // Optional
+      returnDate: null, // Optional
       date,
+      remarks, // ✅ Corrected from 'note'
     });
 
     res.status(201).json(entry);

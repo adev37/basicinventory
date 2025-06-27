@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../../utils/axiosInstance";
+import { toast } from "react-toastify"; // ✅ Toast import
 
 const AddStockIn = () => {
   const [form, setForm] = useState({
@@ -15,12 +16,20 @@ const AddStockIn = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [itemRes, warehouseRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/items"),
-        axios.get("http://localhost:5000/api/warehouses"),
-      ]);
-      setItems(itemRes.data);
-      setWarehouses(warehouseRes.data);
+      try {
+        const [itemRes, warehouseRes] = await Promise.all([
+          API.get("/items"),
+          API.get("/warehouses"),
+        ]);
+        setItems(itemRes.data);
+        setWarehouses(warehouseRes.data);
+      } catch (error) {
+        console.error(
+          "Error loading dropdown data:",
+          error.response?.data || error.message
+        );
+        toast.error("❌ Failed to load item or warehouse data.");
+      }
     };
 
     fetchData();
@@ -33,8 +42,8 @@ const AddStockIn = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/stock-in", form);
-      alert("✅ Stock In recorded!");
+      await API.post("/stock-in", form);
+      toast.success("✅ Stock In recorded!");
       setForm({
         item: "",
         warehouse: "",
@@ -43,9 +52,11 @@ const AddStockIn = () => {
         remarks: "",
       });
     } catch (err) {
-      alert(
-        "❌ Failed to record stock in. Please check the form and try again."
+      console.error(
+        "Error submitting stock in:",
+        err.response?.data || err.message
       );
+      toast.error("❌ Failed to record stock in. Please try again.");
     }
   };
 

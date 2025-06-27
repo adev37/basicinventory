@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../../utils/axiosInstance";
+import { toast } from "react-toastify"; // ✅ Toastify import
 
 const AddStockOut = () => {
   const [form, setForm] = useState({
@@ -17,15 +18,24 @@ const AddStockOut = () => {
   const [warehouses, setWarehouses] = useState([]);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/items")
-      .then((res) => setItems(res.data))
-      .catch((err) => console.error("❌ Failed to fetch items", err));
+    const fetchData = async () => {
+      try {
+        const [itemRes, warehouseRes] = await Promise.all([
+          API.get("/items"),
+          API.get("/warehouses"),
+        ]);
+        setItems(itemRes.data);
+        setWarehouses(warehouseRes.data);
+      } catch (err) {
+        console.error(
+          "❌ Error fetching data:",
+          err.response?.data || err.message
+        );
+        toast.error("❌ Failed to load items or warehouses");
+      }
+    };
 
-    axios
-      .get("http://localhost:5000/api/warehouses")
-      .then((res) => setWarehouses(res.data))
-      .catch((err) => console.error("❌ Failed to fetch warehouses", err));
+    fetchData();
   }, []);
 
   const handleChange = (e) => {
@@ -34,10 +44,9 @@ const AddStockOut = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      await axios.post("http://localhost:5000/api/stock-out", form);
-      alert("✅ Stock Out recorded successfully.");
+      await API.post("/stock-out", form);
+      toast.success("✅ Stock Out recorded successfully.");
       setForm({
         item: "",
         warehouse: "",
@@ -49,9 +58,12 @@ const AddStockOut = () => {
         tenderNo: "",
       });
     } catch (error) {
-      console.error("❌ Error submitting stock out:", error);
-      const msg = error?.response?.data?.message || "Something went wrong.";
-      alert(`❌ ${msg}`);
+      console.error(
+        "❌ Error submitting stock out:",
+        error.response?.data || error.message
+      );
+      const msg = error?.response?.data?.message || "❌ Something went wrong.";
+      toast.error(msg);
     }
   };
 
@@ -132,7 +144,7 @@ const AddStockOut = () => {
           </select>
         </div>
 
-        {/* Stock Out Date */}
+        {/* Date */}
         <div>
           <label className="block text-sm font-medium mb-1">
             📅 Stock Out Date
@@ -147,7 +159,7 @@ const AddStockOut = () => {
           />
         </div>
 
-        {/* Return Date (Visible only for Demo) */}
+        {/* Return Date (only for Demo) */}
         {form.purpose === "Demo" && (
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -192,7 +204,7 @@ const AddStockOut = () => {
           />
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <button
           type="submit"
           className="col-span-2 bg-red-600 text-white font-semibold py-2 rounded hover:bg-red-700">

@@ -1,31 +1,30 @@
 import React, { useEffect, useState } from "react";
 import API from "../../utils/axiosInstance";
+import moment from "moment";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-const CurrentStock = () => {
-  const [stock, setStock] = useState([]);
-  const [filteredStock, setFilteredStock] = useState([]);
-  const [warehouses, setWarehouses] = useState([]);
+const TransferReport = () => {
+  const [transfers, setTransfers] = useState([]);
+  const [filteredTransfers, setFilteredTransfers] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [selectedWarehouse, setSelectedWarehouse] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [warehouses, setWarehouses] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const fetchCurrentStock = async () => {
-    setLoading(true);
+  useEffect(() => {
+    fetchTransfers();
+    fetchWarehouses();
+  }, []);
+
+  const fetchTransfers = async () => {
     try {
-      const res = await API.get("/current-stock");
-      setStock(res.data);
-      setFilteredStock(res.data);
-    } catch (error) {
-      console.error(
-        "Error fetching current stock:",
-        error.response?.data || error.message
-      );
-    } finally {
-      setLoading(false);
+      const res = await API.get("/stock-transfers");
+      setTransfers(res.data);
+      setFilteredTransfers(res.data);
+    } catch (err) {
+      console.error("Error fetching transfers:", err);
     }
   };
 
@@ -38,76 +37,77 @@ const CurrentStock = () => {
     }
   };
 
-  useEffect(() => {
-    fetchCurrentStock();
-    fetchWarehouses();
-  }, []);
-
-  const handleReset = () => {
+  const resetFilters = () => {
     setSearchText("");
     setSelectedWarehouse("");
-    setFilteredStock(stock);
     setCurrentPage(1);
   };
 
   useEffect(() => {
-    let filtered = [...stock];
+    let filtered = [...transfers];
 
     if (searchText.trim()) {
       const lower = searchText.toLowerCase();
       filtered = filtered.filter(
-        (entry) =>
-          entry.item?.toLowerCase().includes(lower) ||
-          entry.modelNo?.toLowerCase().includes(lower) ||
-          entry.companyName?.toLowerCase().includes(lower)
+        (t) =>
+          t.item?.name?.toLowerCase().includes(lower) ||
+          t.item?.modelNo?.toLowerCase().includes(lower)
       );
     }
 
     if (selectedWarehouse) {
       filtered = filtered.filter(
-        (entry) => entry.warehouseId === selectedWarehouse
+        (t) =>
+          t.fromWarehouse?._id === selectedWarehouse ||
+          t.toWarehouse?._id === selectedWarehouse
       );
     }
 
-    setFilteredStock(filtered);
+    setFilteredTransfers(filtered);
     setCurrentPage(1);
-  }, [searchText, selectedWarehouse, stock]);
+  }, [searchText, selectedWarehouse, transfers]);
 
   const exportToExcel = () => {
-    const data = filteredStock.map((entry) => ({
-      Item: entry.item,
-      "Model No.": entry.modelNo,
-      Company: entry.companyName,
-      Warehouse: entry.warehouse,
-      Quantity: entry.quantity,
+    const exportData = filteredTransfers.map((t) => ({
+      Date: moment(t.date).format("DD-MM-YYYY"),
+      Item: t.item?.name || "N/A",
+      "Model No.": t.item?.modelNo || "-",
+      Quantity: t.quantity,
+      From: t.fromWarehouse?.name || "-",
+      To: t.toWarehouse?.name || "-",
+      Remarks: t.note || "-",
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Current Stock");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Transfer Report");
 
-    const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([buffer], {
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const blob = new Blob([excelBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
-    saveAs(blob, "Current_Stock_Report.xlsx");
+    saveAs(blob, "Transfer_Report.xlsx");
   };
 
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentItems = filteredStock.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredStock.length / itemsPerPage);
+  const currentItems = filteredTransfers.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredTransfers.length / itemsPerPage);
 
   return (
     <div className="p-6 min-h-screen relative pb-24">
-      <h2 className="text-2xl font-bold mb-4">📊 Current Stock Report</h2>
+      <h2 className="text-2xl font-bold mb-4">📋 Stock Transfer Report</h2>
 
-      {/* Filters */}
+      {/* Filter Controls */}
       <div className="flex flex-wrap gap-4 mb-4 items-center">
         <input
           type="text"
-          placeholder="🔍 Search Item / Model / Company"
+          placeholder="🔍 Search Item or Model No."
           className="border px-3 py-2 rounded w-60"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
@@ -126,7 +126,7 @@ const CurrentStock = () => {
         </select>
 
         <button
-          onClick={handleReset}
+          onClick={resetFilters}
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
           🔄 Reset
         </button>
@@ -139,45 +139,42 @@ const CurrentStock = () => {
       </div>
 
       {/* Table */}
-      {loading ? (
-        <p className="text-blue-500">Loading stock data...</p>
-      ) : currentItems.length === 0 ? (
-        <p className="text-gray-600">No stock data found.</p>
-      ) : (
-        <div className="overflow-x-auto bg-white rounded shadow">
-          <table className="w-full table-auto border border-gray-300 text-sm">
+      <div className="overflow-x-auto bg-white rounded shadow min-h-[400px]">
+        {currentItems.length === 0 ? (
+          <p className="p-6 text-gray-500 italic">No transfer records found.</p>
+        ) : (
+          <table className="min-w-full text-sm border border-gray-300">
             <thead className="bg-gray-100">
               <tr>
+                <th className="p-2 border">#</th>
                 <th className="p-2 border">Item</th>
-                <th className="p-2 border">Model</th>
-                <th className="p-2 border">Company</th>
-                <th className="p-2 border">Warehouse</th>
-                <th className="p-2 border">Qty Available</th>
+                <th className="p-2 border">Model No.</th>
+                <th className="p-2 border">Quantity</th>
+                <th className="p-2 border">From</th>
+                <th className="p-2 border">To</th>
+                <th className="p-2 border">Date</th>
+                <th className="p-2 border">Remarks</th>
               </tr>
             </thead>
             <tbody>
-              {currentItems.map((entry, index) => (
-                <tr key={index} className="border-t hover:bg-gray-50">
-                  <td className="p-2 border">{entry.item}</td>
-                  <td className="p-2 border">{entry.modelNo}</td>
-                  <td className="p-2 border">{entry.companyName}</td>
-                  <td className="p-2 border">{entry.warehouse}</td>
-                  <td
-                    className={`p-2 border font-semibold ${
-                      entry.quantity < 0
-                        ? "text-red-500"
-                        : entry.quantity === 0
-                        ? "text-gray-500"
-                        : "text-green-600"
-                    }`}>
-                    {entry.quantity}
+              {currentItems.map((t, i) => (
+                <tr key={t._id} className="border-t hover:bg-gray-50">
+                  <td className="p-2 border">{indexOfFirst + i + 1}</td>
+                  <td className="p-2 border">{t.item?.name || "N/A"}</td>
+                  <td className="p-2 border">{t.item?.modelNo || "-"}</td>
+                  <td className="p-2 border">{t.quantity}</td>
+                  <td className="p-2 border">{t.fromWarehouse?.name}</td>
+                  <td className="p-2 border">{t.toWarehouse?.name}</td>
+                  <td className="p-2 border">
+                    {moment(t.date).format("DD-MM-YYYY")}
                   </td>
+                  <td className="p-2 border">{t.note || "-"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -224,4 +221,4 @@ const CurrentStock = () => {
   );
 };
 
-export default CurrentStock;
+export default TransferReport;

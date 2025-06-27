@@ -5,7 +5,7 @@ const itemSchema = new mongoose.Schema({
   name: { type: String, required: true },
   modelNo: { type: String, required: true },
   companyName: { type: String, required: true },
-  minStockAlert: { type: Number, default: 0 },
+  minStockAlert: { type: Number, default: 5 },
 });
 
 // 🚫 Ensure no duplicate modelNo per company

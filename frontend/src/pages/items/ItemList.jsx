@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../../utils/axiosInstance";
 
 const ItemList = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/items")
+    API.get("/items")
       .then((res) => {
         setItems(res.data);
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Failed to fetch items", err);
+        console.error(
+          "Failed to fetch items",
+          err.response?.data || err.message
+        );
         setLoading(false);
       });
   }, []);
@@ -35,7 +37,6 @@ const ItemList = () => {
                 <th className="px-4 py-2">Item Name</th>
                 <th className="px-4 py-2">Model No.</th>
                 <th className="px-4 py-2">Company</th>
-
                 <th className="px-4 py-2">Min Stock Alert</th>
               </tr>
             </thead>
@@ -46,9 +47,10 @@ const ItemList = () => {
                   <td className="px-4 py-2">{item.name}</td>
                   <td className="px-4 py-2">{item.modelNo || "-"}</td>
                   <td className="px-4 py-2">{item.companyName}</td>
-
                   <td className="px-4 py-2">
-                    {item.minStockAlert ? item.minStockAlert : "-"}
+                    {item.minStockAlert !== undefined
+                      ? item.minStockAlert
+                      : "-"}
                   </td>
                 </tr>
               ))}

@@ -3,7 +3,26 @@ import { NavLink, useNavigate } from "react-router-dom";
 import SidebarDropdown from "./SidebarDropdown";
 
 // Lucide icons
-import { LayoutDashboard, Boxes, MoveRight, Undo2, BarChart } from "lucide-react";
+import {
+  LayoutDashboard,
+  PackageSearch,
+  Warehouse,
+  PackagePlus,
+  MoveHorizontal,
+  History,
+  CornerDownLeft,
+  BarChart2,
+  LogOut,
+  List,
+  PlusCircle,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Repeat,
+  FileText,
+  FilePlus2,
+  Undo2,
+  Boxes,
+} from "lucide-react";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -14,7 +33,8 @@ const Sidebar = () => {
     navigate("/login");
   };
 
-  const linkStyle = "block px-4 py-2 hover:bg-blue-100 transition-colors";
+  const linkStyle =
+    "flex items-center gap-2 px-4 py-2 hover:bg-blue-100 transition-colors rounded";
   const activeStyle = "bg-blue-500 text-white";
 
   return (
@@ -22,8 +42,8 @@ const Sidebar = () => {
       {/* Header */}
       <div className="p-4">
         <h2 className="text-xl font-bold mb-6 text-blue-800 flex items-center gap-2">
-          <Boxes className="w-6 h-6 text-blue-600" />
-          StockFlow Tracker
+          <PackageSearch className="w-6 h-6 text-blue-600" />
+          Inventory App
         </h2>
 
         <nav className="space-y-2">
@@ -39,49 +59,129 @@ const Sidebar = () => {
             Dashboard
           </NavLink>
 
-          {/* Inventory Dropdown */}
-          <SidebarDropdown icon={<Boxes className="w-5 h-5" />} title="Inventory">
-            <NavLink to="/items" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              📋 Items List
+          {/* Inventory */}
+          <SidebarDropdown
+            icon={<PackagePlus className="w-5 h-5" />}
+            title="Inventory">
+            <NavLink
+              to="/items"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <List className="w-4 h-4" />
+              Item List
             </NavLink>
-            <NavLink to="/add-item" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              ➕ Add Item
+            <NavLink
+              to="/add-item"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <PlusCircle className="w-4 h-4" />
+              Add Item
             </NavLink>
-            <NavLink to="/warehouses" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              🏬 Warehouses
+            <NavLink
+              to="/warehouses"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <Boxes className="w-4 h-4" />
+              Warehouses
             </NavLink>
-            <NavLink to="/add-warehouse" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              ➕ Add Warehouse
+            <NavLink
+              to="/add-warehouse"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <PlusCircle className="w-4 h-4" />
+              Add Warehouse
             </NavLink>
           </SidebarDropdown>
 
-          {/* Stock Movement Dropdown */}
-          <SidebarDropdown icon={<MoveRight className="w-5 h-5" />} title="Stock Movement">
-            <NavLink to="/stock-in" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              📥 Stock In
+          {/* Stock Movement */}
+          <SidebarDropdown
+            icon={<MoveHorizontal className="w-5 h-5" />}
+            title="Stock Movement">
+            <NavLink
+              to="/stock-in"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <ArrowDownCircle className="w-4 h-4" />
+              Stock In
             </NavLink>
-            <NavLink to="/stock-out" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              📤 Stock Out
+            <NavLink
+              to="/stock-out"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <ArrowUpCircle className="w-4 h-4" />
+              Stock Out
             </NavLink>
           </SidebarDropdown>
 
-          {/* Returns Dropdown */}
-          <SidebarDropdown icon={<Undo2 className="w-5 h-5" />} title="Returns">
-            <NavLink to="/Add-demo-returns" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              🔁 Add Demo Return
+          {/* Transfers */}
+          <SidebarDropdown
+            icon={<History className="w-5 h-5" />}
+            title="Transfers">
+            <NavLink
+              to="/stock-transfer"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <Repeat className="w-4 h-4" />
+              Initiate Transfer
             </NavLink>
-            <NavLink to="/demo-returns" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              🔁 View Returns
+            <NavLink
+              to="/transfer-report"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <FileText className="w-4 h-4" />
+              Transfer History
             </NavLink>
           </SidebarDropdown>
 
-          {/* Reports Dropdown */}
-          <SidebarDropdown icon={<BarChart className="w-5 h-5" />} title="Reports">
-            <NavLink to="/stock" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              📦 Current Stock
+          {/* Returns */}
+          <SidebarDropdown
+            icon={<CornerDownLeft className="w-5 h-5" />}
+            title="Returns">
+            <NavLink
+              to="/Add-demo-returns"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <FilePlus2 className="w-4 h-4" />
+              Add Demo Return
             </NavLink>
-            <NavLink to="/ledger" className={({ isActive }) => `${linkStyle} ${isActive ? activeStyle : ""}`}>
-              📜 Stock Ledger
+            <NavLink
+              to="/demo-returns"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <Undo2 className="w-4 h-4" />
+              View Demo Returns
+            </NavLink>
+          </SidebarDropdown>
+
+          {/* Reports */}
+          <SidebarDropdown
+            icon={<BarChart2 className="w-5 h-5" />}
+            title="Reports">
+            <NavLink
+              to="/stock"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <Warehouse className="w-4 h-4" />
+              Current Stock
+            </NavLink>
+            <NavLink
+              to="/ledger"
+              className={({ isActive }) =>
+                `${linkStyle} ${isActive ? activeStyle : ""}`
+              }>
+              <FileText className="w-4 h-4" />
+              Stock Ledger
             </NavLink>
           </SidebarDropdown>
         </nav>
@@ -91,8 +191,9 @@ const Sidebar = () => {
       <div className="p-4">
         <button
           onClick={logout}
-          className="w-full text-left px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200">
-          🚪 Logout
+          className="w-full text-left px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 flex items-center gap-2">
+          <LogOut className="w-5 h-5" />
+          Logout
         </button>
       </div>
     </div>

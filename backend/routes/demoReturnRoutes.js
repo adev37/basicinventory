@@ -6,7 +6,11 @@ import {
   getDemoReturnReport,
 } from "../controllers/demoController.js";
 
+import verifyToken from "../middleware/verifyToken.js";
+
 const router = express.Router();
+
+router.use(verifyToken); // 🔒 all routes below require token
 
 router.get("/", getPendingDemoReturns);
 router.post("/return/:id", returnDemoItem);
