@@ -39,9 +39,15 @@ export const getCurrentStock = async (req, res) => {
   }
 };
 
+// 📊 GET: Dashboard summary (total items, total stock, low stock items)
 export const getDashboardStats = async (req, res) => {
   try {
-    const ledgerEntries = await StockLedger.find().populate("item warehouse");
+    const ledgerEntries = await StockLedger.find()
+      .populate({
+        path: "item",
+        select: "minStockAlert",
+      })
+      .populate("warehouse");
 
     const stockMap = {}; // key = itemId + warehouseId
 
@@ -55,6 +61,7 @@ export const getDashboardStats = async (req, res) => {
       if (!stockMap[key]) {
         stockMap[key] = {
           quantity: 0,
+          minStockAlert: item.minStockAlert || 5, // default threshold
         };
       }
 
@@ -68,9 +75,8 @@ export const getDashboardStats = async (req, res) => {
       0
     );
 
-    // 🔥 Set fixed threshold: Low Stock if quantity < 5
     const lowStockItems = Object.values(stockMap).filter(
-      (s) => s.quantity < 5
+      (s) => s.quantity < s.minStockAlert
     ).length;
 
     res.json({

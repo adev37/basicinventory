@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from "react";
 import API from "../utils/axiosInstance";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
   PieChart,
   Pie,
   Cell,
+  Tooltip,
   Legend,
   ResponsiveContainer,
 } from "recharts";
@@ -43,6 +39,7 @@ const Dashboard = () => {
         ...prev,
         totalItems: res.data.totalItems,
         totalStock: res.data.totalStock,
+        lowStockItems: res.data.lowStockItems,
       }));
     } catch (err) {
       console.error("Failed to load dashboard stats", err);
@@ -53,13 +50,6 @@ const Dashboard = () => {
     try {
       const res = await API.get("/current-stock");
       setStocks(res.data);
-
-      // ✅ Low Stock Logic: any item < 5 units
-      const low = res.data.filter((s) => s.quantity < 5).length;
-      setStats((prev) => ({
-        ...prev,
-        lowStockItems: low,
-      }));
     } catch (error) {
       console.error("Error fetching stocks:", error);
     }
@@ -84,12 +74,6 @@ const Dashboard = () => {
       console.error("Error fetching demo pending returns:", error);
     }
   };
-
-  const barData = stocks.map((s) => ({
-    name:
-      s.item && s.item.name ? `${s.item.name} (${s.item.modelNo})` : "Unnamed",
-    quantity: s.quantity,
-  }));
 
   const purposeCounts = stockOut.reduce((acc, s) => {
     const purpose = s.purpose || "Unknown";
@@ -118,22 +102,38 @@ const Dashboard = () => {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded shadow p-4">
-          <h2 className="text-lg font-semibold mb-2">📦 Stock by Item</h2>
-          {barData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={barData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="quantity" fill="#0088FE" />
-              </BarChart>
-            </ResponsiveContainer>
+        {/* ✅ Replaced BarChart with Professional Table */}
+        <div className="bg-white rounded shadow p-4 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-2">📦 Stock Overview</h2>
+          {stocks.length > 0 ? (
+            <table className="min-w-full table-auto text-sm text-left border">
+              <thead className="bg-gray-100 text-gray-700 font-medium">
+                <tr>
+                  <th className="px-4 py-2 border">Item</th>
+                  <th className="px-4 py-2 border">Model No</th>
+                  <th className="px-4 py-2 border">Company</th>
+                  <th className="px-4 py-2 border">Warehouse</th>
+                  <th className="px-4 py-2 border text-right">Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stocks.map((s, i) => (
+                  <tr key={i} className="border-t">
+                    <td className="px-4 py-2">{s.item || "N/A"}</td>
+                    <td className="px-4 py-2">{s.modelNo || "-"}</td>
+                    <td className="px-4 py-2">{s.companyName || "N/A"}</td>
+                    <td className="px-4 py-2">{s.warehouse || "N/A"}</td>
+                    <td className="px-4 py-2 text-right">{s.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : (
             <p className="text-gray-400 italic">No stock data available</p>
           )}
         </div>
 
+        {/* Pie Chart stays */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="text-lg font-semibold mb-2">
             ⚠️ Stock Out by Purpose
